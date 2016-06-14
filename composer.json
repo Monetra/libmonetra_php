@@ -1,0 +1,17 @@
+{
+	"name": "monetra/libmonetra_php",
+	"type": "library",
+	"keywords": ["mcve", "payment"],
+	"description": "PHP library for communicating with a Monetra server",
+	"support": {
+		"email": "support@monetra.com",
+		"docs": "https://www.monetra.com/docs/developer/Monetra_PHP_guide_v5.2.pdf",
+		"source": "https://github.com/Monetra/libmonetra_php"
+	},
+	"require": {
+		"php": ">=5.2.0"
+	},
+	"autoload": {
+		"files": ["libmonetra.php"]
+	}
+}
