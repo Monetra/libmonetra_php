@@ -36,7 +36,7 @@ if (!function_exists("m_initengine")) {
 
 //error_reporting(E_ALL);
 
-define('LIBMONETRA_VERSION', '0.9.6');
+define('LIBMONETRA_VERSION', '0.9.7');
 
 define('M_CONN_SSL', 1);
 define('M_CONN_IP',  2);
@@ -81,6 +81,19 @@ function M_InitConn()
 	$conn['ssl_verify']      = false;
 	$conn['ssl_cert']        = null;
 	$conn['ssl_key']         = null;
+
+	/* Secure cipher list that prefers forward secrecy and AEAD ciphers.
+	 * Roughly taken from https://blog.qualys.com/ssllabs/2013/08/05/configuring-apache-nginx-and-openssl-for-forward-secrecy
+	 * without RC4, but added in AES without forward secrecy for legacy servers */
+	$conn['ssl_ciphers']     = 'EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:EECDH+aRSA+SHA384:EECDH+aRSA+SHA256:EECDH:EDH+aRSA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:AES128-SHA:!aNULL:!eNULL:!LOW:!3DES:!RC4:!MD5:!EXP:!PSK:!SRP:!DSS';
+	if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+		/* Prefer only TLSv1.1 or TLSv1.2 if the system is capable */
+		$conn['ssl_protocols'] = STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT|STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+	} else {
+		/* Otherwise SSLv23 does *autonegotiation* to the highest the client and server allow, this may
+		 * even be up to TLSv1.2 even though the name doesn't sound like it */
+		$conn['ssl_protocols']   = STREAM_CRYPTO_METHOD_SSLv23_CLIENT;
+	}
 	$conn['timeout']         = 0;
 	$conn['tran_array']      = array();
 	$conn['verify_conn']     = true;
@@ -160,9 +173,10 @@ function M_Connect(&$conn)
 	if ($conn['method'] == M_CONN_SSL) {
 		stream_context_set_option($ctx, 'ssl', 'cafile', $conn['ssl_cafile']);
 		stream_context_set_option($ctx, 'ssl', 'verify_peer', $conn['ssl_verify']);
+		stream_context_set_option($ctx, 'ssl', 'verify_peer_name', $conn['ssl_verify']);
 		stream_context_set_option($ctx, 'ssl', 'allow_self_signed', !$conn['ssl_verify']);
 		stream_context_set_option($ctx, 'ssl', 'disable_compression', true);
-		stream_context_set_option($ctx, 'ssl', 'ciphers', 'EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:EECDH+aRSA+SHA384:EECDH+aRSA+SHA256:EECDH:EDH+aRSA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:AES128-SHA:!aNULL:!eNULL:!LOW:!3DES:!RC4:!MD5:!EXP:!PSK:!SRP:!DSS');
+		stream_context_set_option($ctx, 'ssl', 'ciphers', $conn['ssl_ciphers']);
 		stream_context_set_option($ctx, 'ssl', 'SNI_enabled', true);
 		if ($conn['ssl_cert'] != NULL) {
 			stream_context_set_option($ctx, 'ssl', 'local_cert', $conn['ssl_cert']);
@@ -195,7 +209,7 @@ function M_Connect(&$conn)
 
 	/* Upgrade the connection to use SSL/TLS.  We need to do this *after* setting Nagle due to
 	 * bug https://bugs.php.net/bug.php?id=70939 */
-	if (!stream_socket_enable_crypto($conn['fd'], true, STREAM_CRYPTO_METHOD_SSLv23_CLIENT)) {
+	if (!stream_socket_enable_crypto($conn['fd'], true, $conn['ssl_protocols'])) {
 		$conn['conn_error'] = "Failed to negotiate SSL/TLS";
 		fclose($conn['fd']);
 		$conn['fd'] = false;
@@ -279,6 +293,19 @@ function M_SetSSL_Files(&$conn, $sslkeyfile, $sslcertfile)
 	return true;
 }
 
+function M_SetSSL_Ciphers(&$conn, $ciphers)
+{
+	$conn['ssl_ciphers'] = $ciphers;
+	return true;
+}
+
+/* One or more crypto_type's as defined in http://php.net/manual/en/function.stream-socket-enable-crypto.php */
+function M_SetSSL_Protocols(&$conn, $protocols)
+{
+	$conn['ssl_protocols'] = $protocols;
+	return true;
+}
+
 function M_SetTimeout(&$conn, $secs)
 {
 	$conn['timeout'] = $secs;
@@ -345,7 +372,7 @@ function M_TransSend(&$conn, $id)
 	} else {
 		/* Each key/value pair in array as key="value" */
 		foreach ($tran['in_params'] as $key => $value) {
-			$tran_str .= $key . '="' . str_replace('"', '""', $value) . '"' . "\r\n"; 
+			$tran_str .= $key . '="' . str_replace('"', '""', $value) . '"' . "\r\n";
 		}
 		/* Add timeout if necessary */
 		if ($conn['timeout'] != 0) {

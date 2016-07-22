@@ -1,4 +1,4 @@
-LIBMONETRA PHP 0.9.6
+LIBMONETRA PHP 0.9.7
 
 ChangeLog
 =========
@@ -18,19 +18,21 @@ ChangeLog
           from emitting warnings.
 * 0.9.4 Only use non-blocking reads for SSL.  Attempt to be smarter
         about when dead waits have to be used for SSL.  No dead waits
-        for IP at all now, can't do the same for SSL because 
+        for IP at all now, can't do the same for SSL because
         stream_set_timeout() doesn't work for SSL.
 * 0.9.5 Additional legacy function implementation for existing
         customer scripts.
 * 0.9.6 For large reports, its better to free memory as early as possible to
-          make sure we do not hit the php limit.
+        make sure we do not hit the php limit.
         Disable the nagle algorithm to lower latency.
+* 0.9.7 Add ability to set SSL/TLS protocol levels
+        Add ability to set SSL/TLS ciphers
 
 Notes
 =====
 
 This is a reimplementation of the php_mcve (PECL module) in pure
-PHP and designed as a full drop-in replacement. 
+PHP and designed as a full drop-in replacement.
 
 It does not have any dependencies outside of what PHP natively
 provides making this deployable across all systems supported
@@ -38,4 +40,4 @@ by PHP.
 
 Simply include 'libmonetra.php', or if using legacy functions,
 'libmonetra_legacy.php' into any page which requires use of
-libmonetra functions.  
+libmonetra functions.
