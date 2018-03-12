@@ -446,44 +446,80 @@ function M_verify_comma_delimited($data)
 
 function M_explode_quoted($delim, $data, $quote_char, $max_sects)
 {
-	$myarr     = array();
-	$cnt       = 0;
-	$on_quote  = 0;
-	$beginsect = 0;
-	for ($i=0; $i<strlen($data); $i++) {
-		if ($data[$i] == $quote_char) {
-			/* Doubling the quote char acts as escaping */
-			if ($data[$i+1] == $quote_char) {
+	if ($data === null || strlen($data) === 0) {
+		return null;
+	}
+
+	$data_length = strlen($data);
+	$num_sects = 1;
+	$on_quote = false;
+
+	/* We need to first count how many lines we have */
+	for ($i=0; $i<$data_length && ($max_sects == 0 || $num_sects < $max_sects); $i++) {
+		if ($quote_char !== 0 && $data[$i] === $quote_char) {
+			/* Doubling the quote char acts as escaping if in a quoted string */
+			if ($on_quote && $data_length - $i > 1 && $data[$i+1] === $quote_char) {
 				$i++;
 				continue;
 			} else if ($on_quote) {
-				$on_quote = 0;
+				$on_quote = false;
 			} else {
-				$on_quote = 1;
+				$on_quote = true;
 			}
 		}
 		if ($data[$i] == $delim && !$on_quote) {
-			$myarr[] = substr($data, $beginsect, $i-$beginsect);
-			$beginsect = $i+1;
-			$cnt++;
-			if ($max_sects != 0 && $cnt == $max_sects - 1)
-				break;
+			$num_sects++;
 		}
 	}
-	if ($beginsect < strlen($data)) {
-		$myarr[] = substr($data, $beginsect, strlen($data) - $beginsect);
+	
+	$ret = array();
+	$beginsect = 0;
+	$cnt = 1;
+	$on_quote = false;
+
+	for ($i=0; $i<$data_length && $cnt < $num_sects; $i++) {
+		if ($quote_char != 0 && $data[$i] == $quote_char) {
+			/* Doubling the quote char acts as escaping */
+			if ($on_quote && $data_length - i > 1 && $data[$i+1] == $quote_char) {
+				$i++;
+				continue;
+			} else if ($on_quote) {
+				$on_quote = false;
+			} else {
+				$on_quote = true;
+			}
+		}
+		if ($data[$i] == $delim && !$on_quote) {
+			$ret[$cnt-1] = substr($data, $beginsect, $i - $beginsect);
+			$beginsect  = $i + 1;
+			$cnt++;
+		}
 	}
-	return $myarr;
+	/* Capture last segment */
+	$ret[$cnt-1] = substr($data, $beginsect, $data_length - $beginsect);
+
+	return $ret;
 }
 
 function M_remove_dupe_quotes($data)
 {
+
+	$i = 0;
+	$len = strlen($data);
+
+	/* No quotes */
 	if (strpos($data, '"') === false)
 		return $data;
 
+	/* Surrounding quotes, remove */
+	if ($data[0] == '"' && $data[$len-1] == '"') {
+			$i += 1;
+			$len -= 1;
+		}
+
 	$ret = "";
-	for ($i=0; $i<strlen($data); $i++) {
-		if ($data[$i] == '"' && $i < strlen($data) - 1 && $data[$i+1] == '"') {
+	for (; $i<$len; $i++) {
+		if ($data[$i] == '"' && $i < $len - 1 && $data[$i+1] == '"') {
 			$ret .= '"';
 			$i++;
 		} else if ($data[$i] != '"') {
@@ -819,9 +855,15 @@ function M_NumRows(&$conn, $id)
 */
 function M_parsecsv($data, $delimiter = ',', $enclosure = '"')
 {
-	$csv = array();
 	$lines = M_explode_quoted("\n", $data, $enclosure, 0);
-	for ($i = 0; $i<count($lines); $i++) {
+	$csv = array();
+
+	/* Strip any trailing blank lines */
+	for ($line_cnt = count($lines); $line_cnt > 0 && count($lines[$line_cnt-1]) == 0; $line_cnt--) {
+		/* Do nothing */
+	}
+	
+	for ($i = 0; $i<$line_cnt; $i++) {
 		$cells     = M_explode_quoted($delimiter, $lines[$i], $enclosure, 0);
 		$lines[$i] = NULL; /* Free memory sooner */
 		for ($j = 0; $j<count($cells); $j++) {
