@@ -461,7 +461,7 @@ function M_explode_quoted($delim, $data, $quote_char, $max_sects)
 			if ($on_quote && $data_length - $i > 1 && $data[$i+1] === $quote_char) {
 				$i++;
 				continue;
-			} else if ($on_quote) {
+			} elseif ($on_quote) {
 				$on_quote = false;
 			} else {
 				$on_quote = true;
@@ -476,14 +476,13 @@ function M_explode_quoted($delim, $data, $quote_char, $max_sects)
 	$beginsect = 0;
 	$cnt = 1;
 	$on_quote = false;
-
 	for ($i=0; $i<$data_length && $cnt < $num_sects; $i++) {
-		if ($quote_char != 0 && $data[$i] == $quote_char) {
+		if ($quote_char !== 0 && $data[$i] === $quote_char) {
 			/* Doubling the quote char acts as escaping */
-			if ($on_quote && $data_length - i > 1 && $data[$i+1] == $quote_char) {
+			if ($on_quote && $data_length - $i > 1 && $data[$i+1] === $quote_char) {
 				$i++;
 				continue;
-			} else if ($on_quote) {
+			} elseif ($on_quote) {
 				$on_quote = false;
 			} else {
 				$on_quote = true;
