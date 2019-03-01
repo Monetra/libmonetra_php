@@ -858,7 +858,7 @@ function M_parsecsv($data, $delimiter = ',', $enclosure = '"')
 	$csv = array();
 
 	/* Strip any trailing blank lines */
-	for ($line_cnt = count($lines); $line_cnt > 0 && count($lines[$line_cnt-1]) == 0; $line_cnt--) {
+	for ($line_cnt = count($lines); $line_cnt > 0 && strlen($lines[$line_cnt-1]) == 0; $line_cnt--) {
 		/* Do nothing */
 	}
 	
