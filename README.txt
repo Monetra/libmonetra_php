@@ -28,6 +28,7 @@ ChangeLog
 * 0.9.7 Add ability to set SSL/TLS protocol levels
         Add ability to set SSL/TLS ciphers
 * 0.9.8 Use 'strlen' instead of 'count' to avoid warnings in PHP 7.2
+* 0.9.9 Do not attempt to set stream context 'cafile' option if CA file has not been specified
 Notes
 =====
 
