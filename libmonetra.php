@@ -171,7 +171,9 @@ function M_Connect(&$conn)
 	$ctx = stream_context_create();
 
 	if ($conn['method'] == M_CONN_SSL) {
-		stream_context_set_option($ctx, 'ssl', 'cafile', $conn['ssl_cafile']);
+		if (!empty($conn['ssl_cafile'])) {
+			stream_context_set_option($ctx, 'ssl', 'cafile', $conn['ssl_cafile']);
+		}
 		stream_context_set_option($ctx, 'ssl', 'verify_peer', $conn['ssl_verify']);
 		stream_context_set_option($ctx, 'ssl', 'verify_peer_name', $conn['ssl_verify']);
 		stream_context_set_option($ctx, 'ssl', 'allow_self_signed', !$conn['ssl_verify']);
