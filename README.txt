@@ -1,4 +1,4 @@
-LIBMONETRA PHP 0.9.8
+LIBMONETRA PHP 0.9.9
 
 ChangeLog
 =========
